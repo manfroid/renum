@@ -17,5 +17,9 @@ fn main() -> io::Result<()> {
     let number_map = generate_new_numbers(original_numbers.clone(), &cli);
     dbg!(&number_map);
 
+    let original_numbers = vec![9, 17, 3, 7, 1];
+    let number_map = generate_new_numbers(original_numbers.clone(), &cli);
+    dbg!(&number_map);
+
     Ok(())
 }
