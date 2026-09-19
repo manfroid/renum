@@ -118,43 +118,38 @@ pub fn generate_new_numbers(original_numbers: Vec<u32>, cli: &Cli) -> Option<Has
     let original_numbers = new_numbers.clone();
 
     if cli.consecutive {
+        // handle -s (and -s <step size>) options
+        // take optional -b <base number> as start value for numbering into account
         let start = cli.base.unwrap_or(new_numbers[0]);
+        // if present, use optional -s <step size> for incremtns
         let step_size = cli.step.unwrap_or(1) as usize;
+        // calculate end number for generating a range of numbers
         let end = start + (new_numbers.len() * step_size) as u32;
-        dbg!(&start, &end, &step_size);
+        // replace new_numbers with newly generated range
         new_numbers = (start..end).step_by(step_size).collect();
-        dbg!(&new_numbers);
     } else {
-        // adjust new starting value
+        // handle -b <base number> option only if given and different from
+        // original first value
         if let Some(start) = cli.base
             && start != original_numbers[0]
         {
-            new_numbers = new_numbers
-                .iter()
-                .map(|n| n + start - original_numbers[0])
-                .collect();
-        }
-
-        // apply new step width
-        if let Some(delta) = cli.step
-            && delta > 1
-        {
-            new_numbers = new_numbers
-                .iter()
-                .enumerate()
-                .map(|(i, n)| n + i as u32 * delta)
-                .collect::<Vec<u32>>();
+            let apply_start = |n: u32| n + start - original_numbers[0];
+            // use into_oter to work with u32 values; new_numbers will then be reassigned
+            new_numbers = new_numbers.into_iter().map(apply_start).collect();
         }
     }
 
     if cli.mirror {
-        dbg!(&new_numbers);
+        // handle -m option
+        // get start value from current values
         let start = new_numbers[0];
+        // get end value from current values
         let end = new_numbers[new_numbers.len() - 1];
-        // dbg!(&start);
-        // dbg!(&end);
-        new_numbers = new_numbers.into_iter().map(|n| end - n + start).collect();
-        dbg!(&new_numbers);
+        // the mirror closure reverses the values honouring gaps
+        let mirror = |n: u32| end - n + start;
+        // replace new_numbers with mirrored values
+        // use into_oter to work with u32 values; new_numbers will then be reassigned
+        new_numbers = new_numbers.into_iter().map(mirror).collect();
     }
 
     let mut number_map = HashMap::new();
