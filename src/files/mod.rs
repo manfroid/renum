@@ -92,10 +92,7 @@ mod tests {
 
     #[test]
     fn format_file_name_keeps_number_width_if_necessary() {
-        let cli = Cli {
-            width: Some(1),
-            ..Cli::new()
-        };
+        let cli = Cli::from_string("-w 1");
         let file_entry = FileEntry {
             number: 42,
             name_part: " A file named file.dat".to_string(),
@@ -108,10 +105,7 @@ mod tests {
 
     #[test]
     fn format_file_name_widens_number_width() {
-        let cli = Cli {
-            width: Some(4),
-            ..Cli::new()
-        };
+        let cli = Cli::from_string("--width 4");
         let file_entry = FileEntry {
             number: 3,
             name_part: " A file named file.dat".to_string(),
@@ -124,10 +118,7 @@ mod tests {
 
     #[test]
     fn format_file_name_changes_delimiter_pair() {
-        let cli = Cli {
-            delimiters: "..".to_string(),
-            ..Cli::new()
-        };
+        let cli = Cli::from_string("--delimiters ..");
         let file_entry = FileEntry {
             number: 3,
             name_part: " A file named file.dat".to_string(),
@@ -140,10 +131,7 @@ mod tests {
 
     #[test]
     fn format_file_name_changes_single_delimiter() {
-        let cli = Cli {
-            delimiters: "|".to_string(),
-            ..Cli::new()
-        };
+        let cli = Cli::from_string("--delimiters |");
         let file_entry = FileEntry {
             number: 3,
             name_part: " A file named file.dat".to_string(),
