@@ -2,7 +2,8 @@ use clap::Parser;
 
 /// A container for command-line arguments parsed by the clap crate
 #[derive(Debug, PartialEq, Eq, Parser)]
-#[command(version, no_binary_name = true)]
+// #[command(version, no_binary_name = true)]
+#[command(version, no_binary_name = false)]
 pub struct Cli {
     /// The folder with the file(s) to be renumbered (default: current directory)
     #[arg(default_value_t = String::from("."))]
@@ -53,6 +54,8 @@ impl Cli {
 
     /// Creates a Cli struct from a string containing the arguments (w/o binary file name)
     pub fn from_string(line: &str) -> Self {
+        let binary_name = module_path!().split("::").take(1).next().unwrap_or("crate");
+        let line = format!("{binary_name} {line}");
         let args = line.split_whitespace().collect::<Vec<&str>>();
         Self::parse_from(args)
     }
