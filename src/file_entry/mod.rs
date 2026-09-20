@@ -170,8 +170,36 @@ mod tests {
     fn generate_numbers_works_with_default_settings() {
         let cli = Cli { ..Cli::new() };
         let original_numbers = vec![1, 2, 3, 4, 5, 6];
+
         let number_map = generate_new_numbers(original_numbers.clone(), &cli);
-        dbg!(&number_map);
         assert!(number_map.is_some());
+
+        let number_map = &number_map.unwrap();
+        assert_eq!(number_map.len(), original_numbers.len());
+
+        let identity_map = generate_identity_map_from_vector(original_numbers);
+        assert_eq!(*number_map, identity_map);
+    }
+
+    #[test]
+    fn generate_numbers_works_with_duplicate_numbers() {
+        let cli = Cli { ..Cli::new() };
+        let original_numbers = vec![98, 12, 32, 98, 14]; // 98 occurs twice!
+
+        let number_map = generate_new_numbers(original_numbers.clone(), &cli);
+        assert!(number_map.is_some());
+
+        let number_map = &number_map.unwrap();
+        assert_eq!(number_map.len(), original_numbers.len() - 1);
+
+        let identity_map = generate_identity_map_from_vector(original_numbers);
+        assert_eq!(*number_map, identity_map);
+    }
+
+    fn generate_identity_map_from_vector(v: Vec<u32>) -> HashMap<u32, u32> {
+        v.clone()
+            .into_iter()
+            .map(|n| (n, n))
+            .collect::<HashMap<u32, u32>>()
     }
 }
