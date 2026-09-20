@@ -24,7 +24,7 @@ pub fn rename_by_file_entries(
         let new_file_name =
             format_file_name(&file_entry.name_part, number_map[&file_entry.number], cli);
         println!("{} -> {}", file_entry.full_name, new_file_name);
-        std::fs::rename(&file_entry.full_name, &new_file_name);
+        let _ = std::fs::rename(&file_entry.full_name, &new_file_name);
     });
 }
 
