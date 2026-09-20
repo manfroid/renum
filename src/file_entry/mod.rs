@@ -1,4 +1,5 @@
 use crate::cli::Cli;
+use crate::files::capture_pattern_string;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs::DirEntry;
@@ -9,7 +10,6 @@ pub struct FileEntry {
     pub number: u32,
     pub name_part: String,
     pub full_name: String,
-    pub new_name: Option<String>,
 }
 
 impl FileEntry {
@@ -17,15 +17,31 @@ impl FileEntry {
     pub fn from(dir_entry: &DirEntry, cli: &Cli) -> Option<Self> {
         let file_path = dir_entry.path().display().to_string();
         let filename = dir_entry.file_name().display().to_string();
-        if let Some((number, name_part)) = split_file_name(&filename, cli) {
+        if let Some((number, name_part)) = Self::split_file_name(&filename, cli) {
             return Some(Self {
                 number,
                 name_part,
                 full_name: file_path,
-                new_name: None,
             });
         }
         None
+    }
+
+    /// Split a file name matching the numbered file pattern into the number and
+    /// the rest of the file name after the matched pattern as a heap String
+    fn split_file_name(filename: &str, cli: &Cli) -> Option<(u32, String)> {
+        // build regular expression from pattern
+        if let Ok(re) = Regex::new(&capture_pattern_string(cli)) {
+            // collect captures from filename as haystack
+            if let Some(captures) = re.captures(filename) {
+                // according to regex pattern, this capture must be numeric => unwrap it!
+                let number = captures["number"].to_string().parse::<u32>().unwrap();
+                let tail = captures["tail"].to_string();
+                return Some((number, tail));
+            }
+        }
+
+        return None;
     }
 }
 
@@ -67,21 +83,6 @@ pub fn collect_file_entries(
         .sort_by(|file_entry_1, file_entry_2| file_entry_1.number.cmp(&file_entry_2.number));
 
     Ok((file_entries, dirs))
-}
-
-fn split_file_name(filename: &str, cli: &Cli) -> Option<(u32, String)> {
-    // build regular expression from pattern
-    if let Ok(re) = Regex::new(&capture_pattern_string(cli)) {
-        // collect captures from filename as haystack
-        if let Some(captures) = re.captures(filename) {
-            // according to regex pattern, this capture must be numeric => unwrap it!
-            let number = captures["number"].to_string().parse::<u32>().unwrap();
-            let tail = captures["tail"].to_string();
-            return Some((number, tail));
-        }
-    }
-
-    return None;
 }
 
 pub fn generate_new_numbers_for_file_entries(
@@ -160,46 +161,10 @@ pub fn generate_new_numbers(original_numbers: Vec<u32>, cli: &Cli) -> Option<Has
     Some(number_map)
 }
 
-pub fn capture_pattern_string(cli: &Cli) -> String {
-    format!(
-        "^\\{}(?<number>\\d+)\\{}(?<tail>.*)$",
-        cli.l_delim(),
-        cli.r_delim()
-    )
-}
-
-pub fn format_file_name(file_name_part: &str, number: u32, cli: &Cli) -> String {
-    format!(
-        "{}{:0width$}{}{}",
-        cli.l_delim(),
-        number,
-        cli.r_delim(),
-        file_name_part,
-        width = cli.width.unwrap_or(0)
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-
-    #[test]
-    fn format_file_name_changing_number_width() {
-        let cli = Cli {
-            width: Some(4),
-            ..Cli::new()
-        };
-        let file_entry = FileEntry {
-            number: 3,
-            name_part: " A file named file.dat".to_string(),
-            full_name: "[3] A file named file.dat".to_string(),
-            new_name: None,
-        };
-        let file_name = format_file_name(&file_entry.name_part, file_entry.number, &cli);
-
-        assert_eq!(file_name, "[0003] A file named file.dat".to_string());
-    }
 
     #[test]
     fn generate_numbers_works_with_default_settings() {

@@ -1,21 +1,52 @@
+use std::collections::HashMap;
+use std::io;
+
 use crate::cli::Cli;
-use crate::file_entry::{capture_pattern_string, format_file_name};
-use regex::Regex;
+use crate::file_entry::{FileEntry, collect_file_entries, generate_new_numbers_for_file_entries};
 
-pub fn rename(from: &str, cli: &Cli) -> Option<String> {
-    if let Ok(re) = Regex::new(&capture_pattern_string(cli)) {
-        println!("{re:#?}");
+pub fn rename_in_folder(folder: &str, cli: &Cli) -> io::Result<()> {
+    let (file_entries, _) = collect_file_entries(folder, &cli)?;
+    dbg!(&file_entries);
 
-        if let Some(captures) = re.captures(from) {
-            println!("{captures:#?}");
-            // according to regex pattern, this capture must be numeric => unwrap it!
-            let number = captures["number"].to_string().parse::<u32>().unwrap();
-            let tail = captures["tail"].to_string();
-            return Some(format_file_name(&tail, number, cli));
-        }
+    if let Some(number_map) = generate_new_numbers_for_file_entries(&file_entries, cli) {
+        rename_by_file_entries(&file_entries, &number_map, cli);
     }
 
-    None
+    Ok(())
+}
+
+pub fn rename_by_file_entries(
+    file_entries: &Vec<FileEntry>,
+    number_map: &HashMap<u32, u32>,
+    cli: &Cli,
+) {
+    file_entries.into_iter().for_each(|file_entry| {
+        let new_file_name =
+            format_file_name(&file_entry.name_part, number_map[&file_entry.number], cli);
+        println!("{} -> {}", file_entry.full_name, new_file_name);
+        std::fs::rename(&file_entry.full_name, &new_file_name);
+    });
+}
+
+/// Return the String that represents a file name adhering tot the numbering scheme
+/// required by this app; to be used to create a Regex from
+pub fn capture_pattern_string(cli: &Cli) -> String {
+    format!(
+        "^\\{}(?<number>\\d+)\\{}(?<tail>.*)$",
+        cli.l_delim(),
+        cli.r_delim()
+    )
+}
+
+fn format_file_name(file_name_part: &str, number: u32, cli: &Cli) -> String {
+    format!(
+        "{}{:0width$}{}{}",
+        cli.l_delim(),
+        number,
+        cli.r_delim(),
+        file_name_part,
+        width = cli.width.unwrap_or(0)
+    )
 }
 
 #[cfg(test)]
@@ -24,11 +55,103 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn rename_can_return_renamed_string() {
-        const FILENAME: &str = "[001] test_file.dat";
+    fn capture_pattern_string_works_with_defaults() {
         let cli = Cli::new();
 
-        let result = rename(FILENAME, &cli);
-        assert_eq!(result, Some(String::from("[1] test_file.dat")));
+        let capture_pattern = capture_pattern_string(&cli);
+        assert_eq!(
+            capture_pattern,
+            String::from("^\\[(?<number>\\d+)\\](?<tail>.*)$")
+        );
+    }
+
+    #[test]
+    fn capture_pattern_string_works_with_single_delimiter() {
+        let cli = Cli {
+            delimiters: "#".to_string(),
+            ..Cli::new()
+        };
+        let capture_pattern = capture_pattern_string(&cli);
+        assert_eq!(
+            capture_pattern,
+            String::from("^\\#(?<number>\\d+)\\#(?<tail>.*)$")
+        );
+    }
+
+    #[test]
+    fn capture_pattern_string_works_with_empty_delimiter() {
+        let cli = Cli {
+            delimiters: String::default(),
+            ..Cli::new()
+        };
+        let capture_pattern = capture_pattern_string(&cli);
+        assert_eq!(
+            capture_pattern,
+            String::from("^\\[(?<number>\\d+)\\](?<tail>.*)$")
+        );
+    }
+
+    #[test]
+    fn format_file_name_keeps_number_width_if_necessary() {
+        let cli = Cli {
+            width: Some(1),
+            ..Cli::new()
+        };
+        let file_entry = FileEntry {
+            number: 42,
+            name_part: " A file named file.dat".to_string(),
+            full_name: "[42] A file named file.dat".to_string(),
+        };
+        let file_name = format_file_name(&file_entry.name_part, file_entry.number, &cli);
+
+        assert_eq!(file_name, "[42] A file named file.dat".to_string());
+    }
+
+    #[test]
+    fn format_file_name_widens_number_width() {
+        let cli = Cli {
+            width: Some(4),
+            ..Cli::new()
+        };
+        let file_entry = FileEntry {
+            number: 3,
+            name_part: " A file named file.dat".to_string(),
+            full_name: "[3] A file named file.dat".to_string(),
+        };
+        let file_name = format_file_name(&file_entry.name_part, file_entry.number, &cli);
+
+        assert_eq!(file_name, "[0003] A file named file.dat".to_string());
+    }
+
+    #[test]
+    fn format_file_name_changes_delimiter_pair() {
+        let cli = Cli {
+            delimiters: "..".to_string(),
+            ..Cli::new()
+        };
+        let file_entry = FileEntry {
+            number: 3,
+            name_part: " A file named file.dat".to_string(),
+            full_name: "[3] A file named file.dat".to_string(),
+        };
+        let file_name = format_file_name(&file_entry.name_part, file_entry.number, &cli);
+
+        assert_eq!(file_name, ".3. A file named file.dat".to_string());
+    }
+
+    #[test]
+    fn format_file_name_changes_single_delimiter() {
+        let cli = Cli {
+            delimiters: "|".to_string(),
+            ..Cli::new()
+        };
+        let file_entry = FileEntry {
+            number: 3,
+            name_part: " A file named file.dat".to_string(),
+            full_name: "[3] A file named file.dat".to_string(),
+        };
+        let file_name = format_file_name(&file_entry.name_part, file_entry.number, &cli);
+
+        assert_eq!(file_name, "|3| A file named file.dat".to_string());
     }
 }
