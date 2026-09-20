@@ -1,8 +1,8 @@
 use clap::Parser;
 
 /// A container for command-line arguments parsed by the clap crate
-#[derive(Debug, Parser)]
-#[command(version)]
+#[derive(Debug, PartialEq, Eq, Parser)]
+#[command(version, no_binary_name = true)]
 pub struct Cli {
     /// The folder with the file(s) to be renumbered (default: current directory)
     #[arg(default_value_t = String::from("."))]
@@ -32,7 +32,7 @@ pub struct Cli {
 }
 
 impl Cli {
-    /// A Cli struct set to its default values
+    /// Creates a Cli struct set to its default values
     pub fn new() -> Self {
         Cli {
             path: ".".to_string(),
@@ -46,10 +46,18 @@ impl Cli {
         }
     }
 
+    /// Creates a Cli struct from the program's command-line arguments
     pub fn from_args() -> Self {
         Self::parse()
     }
 
+    /// Creates a Cli struct from a string containing the arguments (w/o binary file name)
+    pub fn from_string(line: &str) -> Self {
+        let args = line.split_whitespace().collect::<Vec<&str>>();
+        Self::parse_from(args)
+    }
+
+    /// Returns the left delimiter of a number in a file name
     pub fn l_delim(&self) -> String {
         if self.delimiters.len() < 1 {
             "[".to_string()
@@ -58,6 +66,7 @@ impl Cli {
         }
     }
 
+    /// Returns the right delimiter of a number in a file name
     pub fn r_delim(&self) -> String {
         if self.delimiters.len() < 1 {
             "]".to_string()
@@ -67,5 +76,36 @@ impl Cli {
                 .unwrap_or(&self.l_delim())
                 .to_string()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn new_creates_default_cli() {
+        let cli = Cli::new();
+        assert_eq!(cli.path, ".".to_string());
+        assert_eq!(cli.base, None);
+        assert_eq!(cli.consecutive, false);
+        assert_eq!(cli.delimiters, "[]".to_string());
+        assert_eq!(cli.mirror, false);
+        assert_eq!(cli.recursive, false);
+        assert_eq!(cli.step, None);
+        assert_eq!(cli.width, None);
+    }
+
+    #[test]
+    fn from_string_with_args_creates_appropriate_cli() {
+        let cli_from_string = Cli::from_string("-m -b 2 --width 4");
+        let expected_cli = Cli {
+            base: Some(2),
+            mirror: true,
+            width: Some(4),
+            ..Cli::new()
+        };
+        assert_eq!(cli_from_string, expected_cli);
     }
 }
