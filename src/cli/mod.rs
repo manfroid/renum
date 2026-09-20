@@ -51,13 +51,21 @@ impl Cli {
     }
 
     pub fn l_delim(&self) -> String {
-        self.delimiters.get(..1).unwrap_or("[").to_string()
+        if self.delimiters.len() < 1 {
+            "[".to_string()
+        } else {
+            self.delimiters[..1].to_string()
+        }
     }
 
     pub fn r_delim(&self) -> String {
-        self.delimiters
-            .get(1..2)
-            .unwrap_or(&self.l_delim())
-            .to_string()
+        if self.delimiters.len() < 1 {
+            "]".to_string()
+        } else {
+            self.delimiters
+                .get(1..2)
+                .unwrap_or(&self.l_delim())
+                .to_string()
+        }
     }
 }
