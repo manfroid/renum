@@ -1,5 +1,4 @@
-use renum::cli::Cli;
-use renum::files::rename_in_folder;
+use renum::{cli::Cli, rename_in_folder};
 
 use std::io;
 

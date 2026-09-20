@@ -1,18 +1,7 @@
 use std::collections::HashMap;
-use std::io;
 
 use crate::cli::Cli;
-use crate::file_entry::{FileEntry, collect_file_entries, generate_new_numbers_for_file_entries};
-
-pub fn rename_in_folder(folder: &str, cli: &Cli) -> io::Result<()> {
-    let (file_entries, _) = collect_file_entries(folder, &cli)?;
-
-    if let Some(number_map) = generate_new_numbers_for_file_entries(&file_entries, cli) {
-        rename_by_file_entries(&file_entries, &number_map, cli);
-    }
-
-    Ok(())
-}
+use crate::file_entry::FileEntry;
 
 pub fn rename_by_file_entries(
     file_entries: &Vec<FileEntry>,
