@@ -2,16 +2,18 @@ use clap::Parser;
 
 /// A container for command-line arguments parsed by the clap crate
 #[derive(Debug, PartialEq, Eq, Parser)]
-// #[command(version, no_binary_name = true)]
-#[command(version, no_binary_name = false)]
+#[command(
+    version,
+    about = "Renumbers files named like \"[#] filename.extension\"."
+)]
 pub struct Cli {
-    /// The folder with the file(s) to be renumbered (default: current directory)
+    /// The folder with the file(s) to be renumbered
     #[arg(default_value_t = String::from("."))]
     pub path: String,
-    /// Starting value of numbers (optional)
+    /// Starting value of numbers [optional]
     #[arg(short, long)]
     pub base: Option<u32>,
-    /// Consecutive numbers = eliminate gaps (default: false)
+    /// Consecutive numbers = eliminate gaps [default: false]
     #[arg(short, long, default_value_t = false)]
     pub consecutive: bool,
     /// delimiters around original number; if left and right
@@ -21,13 +23,13 @@ pub struct Cli {
     /// Mirror numbering = reverse number order
     #[arg(short, long, default_value_t = false)]
     pub mirror: bool,
-    /// Recurse into subdirectories
+    /// Recurse into subdirectories [default: false]
     #[arg(short, long, default_value_t = false)]
     pub recursive: bool,
-    /// Step width of numbers (optional)
+    /// Step width of numbers [optional]
     #[arg(short, long, requires("consecutive"))]
     pub step: Option<u32>,
-    /// width of number, left-padded with zeroes (optional)
+    /// width of number, left-padded with zeroes [optional]
     #[arg(short, long)]
     pub width: Option<usize>,
 }
